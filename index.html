@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>مدیریت مالی شخصی — آفلاین</title>
+<style>
+  :root{
+    --green:#00c46a;
+    --green-2:#009e55;
+    --bg:#0b0b0b;
+    --card:#121212;
+    --card2:#161616;
+    --text:#e9efe9;
+    --muted:#9aa09a;
+    --border:#232323;
+    --danger:#ff5b5b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family: "Vazirmatn", "Segoe UI", Tahoma, sans-serif}
+  html,body{height:100%}
+  body{background:linear-gradient(180deg,#07120a 0%,var(--bg) 100%);color:var(--text);min-height:100vh;padding-bottom:90px}
+  header{position:sticky;top:0;z-index:60;background:transparent;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:space-between}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--green),var(--green-2));display:grid;place-items:center;font-weight:800;color:#001;box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+  h1{font-size:18px;color:var(--text)}
+  .controls{display:flex;gap:10px;align-items:center}
+  button.btn{background:var(--green);color:#001;border:none;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+  button.btn-outline{background:transparent;border:1px solid var(--green);color:var(--green);padding:8px 12px;border-radius:10px;cursor:pointer}
+  button.btn-danger{background:var(--danger);color:#fff;border:none;padding:8px 12px;border-radius:10px;cursor:pointer}
+  main{max-width:1100px;margin:18px auto;padding:18px}
+  .nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .nav button{background:var(--card);color:var(--muted);border:1px solid var(--border);padding:10px 14px;border-radius:10px;cursor:pointer}
+  .nav button.active{background:var(--green);color:#001;border-color:var(--green);font-weight:800}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:16px;transition:all .15s}
+  .card:hover{transform:translateY(-3px)}
+  .label{color:var(--muted);font-size:13px;margin-bottom:8px}
+  .value{font-size:20px;font-weight:700;color:var(--green)}
+
+  .value.red{color:var(--danger)}
+  .value.white{color:var(--text)}
+
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+  label{display:block;margin-bottom:6px;color:var(--muted);font-size:13px}
+  input,select,textarea{width:100%;background:transparent;border:1px solid var(--border);padding:10px;border-radius:8px;color:var(--text)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--green)}
+
+  table{width:100%;border-collapse:collapse;background:transparent;margin-top:8px}
+  th,td{padding:10px 12px;text-align:right;border-bottom:1px dashed rgba(255,255,255,0.03);font-size:14px}
+  th{color:var(--green);font-weight:800}
+  tr:last-child td{border-bottom:none}
+  .del{background:none;border:none;color:var(--danger);cursor:pointer}
+
+  nav.fixed{position:fixed;inset:auto 16px 22px 16px;display:flex;gap:8px;justify-content:center;padding:8px;background:var(--card2);border:1px solid var(--border);border-radius:12px;z-index:80}
+  .section{display:none}
+  .section.active{display:block}
+
+  /* lock */
+  #lockScreen{position:fixed;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.6),rgba(0,0,0,0.85));display:grid;place-items:center;z-index:110}
+  #lockScreen .box{width:420px;max-width:92%;background:var(--card);border:1px solid var(--border);padding:26px;border-radius:14px;text-align:center}
+  #lockScreen h2{color:var(--green);margin-bottom:12px}
+  #toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(120px);background:var(--green);color:#001;padding:10px 18px;border-radius:10px;font-weight:700;transition:all .25s;z-index:200;opacity:0}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+  footer.note{max-width:1100px;margin:10px auto 60px;color:var(--muted);font-size:13px;text-align:center}
+
+  @media(max-width:720px){
+    .form-row{grid-template-columns:1fr}
+    .logo{width:40px;height:40px}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lockScreen" aria-hidden="false">
+  <div class="box" role="dialog" aria-label="قفل برنامه">
+    <h2>🔒 ورود به پنل مالی</h2>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:12px" id="lockIntro">اولین بار: رمز جدید وارد کنید — دفعات بعدی همان را وارد کنید.</p>
+    <input id="lockInput" type="password" placeholder="رمز عبور" autocomplete="new-password" style="width:100%;margin-bottom:10px;font-size:16px;padding:10px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--text)">
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button class="btn" id="lockBtn" onclick="tryUnlock()">ورود</button>
+      <button class="btn-outline" onclick="resetPasswordPrompt()">تنظیم/تغییر رمز</button>
+    </div>
+    <p style="color:var(--muted);font-size:12px;margin-top:10px">تمام داده‌ها فقط روی دستگاه شما ذخیره می‌شود.</p>
+  </div>
+</div>
+
+<header>
+  <div class="brand">
+    <div class="logo">ت</div>
+    <div>
+      <h1>مدیریت مالی شخصی</h1>
+      <div style="font-size:12px;color:var(--muted)">واحد: تومان · آفلاین · ذخیره روی دستگاه</div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="btn-outline" onclick="logout()">🔒 خروج</button>
+    <button class="btn-outline" onclick="downloadBackup()">💾 پشتیبان‌گیری</button>
+    <button class="btn" onclick="exportCSV()">📊 خروجی Excel</button>
+  </div>
+</header>
+
+<main>
+  <div class="nav" role="tablist" aria-label="ناوبری">
+    <button class="active" data-sec="dashboard" onclick="switchSec(this)">🏠 داشبورد</button>
+    <button data-sec="addIncome" onclick="switchSec(this)">💰 ثبت درآمد</button>
+    <button data-sec="addExpense" onclick="switchSec(this)">💸 ثبت هزینه</button>
+    <button data-sec="records" onclick="switchSec(this)">📋 سوابق</button>
+    <button data-sec="report" onclick="switchSec(this)">📈 گزارش ماهانه</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <section id="dashboard" class="section active" aria-live="polite">
+    <div class="grid" style="margin-bottom:14px">
+      <div class="card"><div class="label">جمع حقوق</div><div class="value" id="sumSalary">۰</div></div>
+      <div class="card"><div class="label">جمع اضافه‌کاری</div><div class="value" id="sumOvertime">۰</div></div>
+      <div class="card"><div class="label">جمع هزینه‌ها</div><div class="value red" id="sumExpense">۰</div></div>
+      <div class="card"><div class="label">جمع بدهی</div><div class="value red" id="sumDebt">۰</div></div>
+      <div class="card"><div class="label">جمع پس‌انداز</div><div class="value" id="sumSavings">۰</div></div>
+      <div class="card"><div class="label">موجودی خالص</div><div class="value white" id="sumNet">۰</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <h3 style="color:var(--green);margin-bottom:10px">📅 تقویم حقوق — ۱۲ ماه اخیر</h3>
+      <div id="calendar" class="grid"></div>
+    </div>
+  </section>
+
+  <!-- ADD INCOME -->
+  <section id="addIncome" class="section">
+    <div class="card">
+      <h3 style="color:var(--green);margin-bottom:8px">➕ ثبت حقوق و اضافه‌کاری</h3>
+      <div class="form-row">
+        <div>
+          <label>ماه</label>
+          <select id="incMonth"></select>
+        </div>
+        <div>
+          <label>سال (شمسی)</label>
+          <input type="number" id="incYear" value="" min="1300" max="1500">
+        </div>
+      </div>
+      <div class="form-row">
+        <div><label>حقوق (تومان)</label><input type="number" id="incSalary" placeholder="0"></div>
+        <div><label>اضافه‌کاری (تومان)</label><input type="number" id="incOvertime" placeholder="0"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="addIncome()">ذخیره درآمد</button>
+        <button class="btn-outline" onclick="fillThisMonthIncome()">پُر کردن ماه جاری</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADD EXPENSE -->
+  <section id="addExpense" class="section">
+    <div class="card">
+      <h3 style="color:var(--green);margin-bottom:8px">➕ ثبت هزینه / بدهی / پس‌انداز</h3>
+      <div class="form-row">
+        <div>
+          <label>نوع</label>
+          <select id="expType">
+            <option value="expense">هزینه</option>
+            <option value="debt">بدهی</option>
+            <option value="savings">پس‌انداز</option>
+          </select>
+        </div>
+        <div>
+          <label>عنوان</label>
+          <input id="expTitle" placeholder="مثلاً قبض برق">
+        </div>
+      </div>
+      <div class="form-row">
+        <div><label>مبلغ (تومان)</label><input id="expAmount" type="number" placeholder="0"></div>
+        <div><label>تاریخ (شمسی — مثال 1404/01/15)</label><input id="expDate" placeholder="1404/01/15"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="addExpense()">ثبت</button>
+        <button class="btn-outline" onclick="addExpenseNoDate()">ثبت سریع (بدون تاریخ)</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RECORDS -->
+  <section id="records" class="section">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:8px">
+      <button class="btn-outline" onclick="clearAll()">🗑️ پاک‌سازی کل داده‌ها</button>
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <h3 style="color:var(--green);margin-bottom:8px">💰 درآمدها</h3>
+      <table id="incomeTable"><thead><tr><th>ماه</th><th>سال</th><th>حقوق</th><th>اضافه‌کاری</th><th></th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div class="card">
+      <h3 style="color:var(--green);margin-bottom:8px">💸 هزینه / بدهی / پس‌انداز</h3>
+      <table id="expenseTable"><thead><tr><th>نوع</th><th>عنوان</th><th>مبلغ</th><th>تاریخ</th><th></th></tr></thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <!-- REPORT -->
+  <section id="report" class="section">
+    <div class="card" style="margin-bottom:12px">
+      <h3 style="color:var(--green);margin-bottom:8px">📈 گزارش ماهانه</h3>
+      <div class="form-row">
+        <div><label>ماه</label><select id="repMonth"></select></div>
+        <div><label>سال</label><input id="repYear" type="number" value=""></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" onclick="showReport()">نمایش گزارش</button>
+        <button class="btn-outline" onclick="showReport(true)">نمایش با جزئیات ردیف‌ها</button>
+      </div>
+    </div>
+    <div id="reportResult"></div>
+  </section>
+</main>
+
+<nav class="fixed" aria-hidden="true">
+  <button onclick="switchSec(document.querySelector('[data-sec=dashboard]'))">🏠</button>
+  <button onclick="switchSec(document.querySelector('[data-sec=addIncome]'))">💰</button>
+  <button onclick="switchSec(document.querySelector('[data-sec=addExpense]'))">💸</button>
+  <button onclick="switchSec(document.querySelector('[data-sec=records]'))">📋</button>
+  <button onclick="switchSec(document.querySelector('[data-sec=report]'))">📈</button>
+</nav>
+
+<div id="toast"></div>
+<footer class="note">این برنامه کاملاً آفلاین است و داده‌ها فقط در مرورگر شما ذخیره می‌شوند. از پشتیبان‌گیری منظم استفاده کنید.</footer>
+
+<script>
+/* =======================
+   Persistent keys & helpers
+   ======================= */
+const KEY_INC = 'psm_incomes_v1';
+const KEY_EXP = 'psm_expenses_v1';
+const KEY_AUTH = 'psm_auth_v1'; // stores {salt, hash}
+const KEY_META = 'psm_meta_v1';
+const months = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+
+const getInc = ()=> JSON.parse(localStorage.getItem(KEY_INC) || '[]');
+const getExp = ()=> JSON.parse(localStorage.getItem(KEY_EXP) || '[]');
+const saveInc = d=> localStorage.setItem(KEY_INC, JSON.stringify(d));
+const saveExp = d=> localStorage.setItem(KEY_EXP, JSON.stringify(d));
+
+const fmt = n => (Number(n)||0).toLocaleString('fa-IR') + ' تومان';
+const esc = s => (s==null)?'':String(s).replace(/[&<>"'`=\/]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'}[c]));
+
+/* =======================
+   Crypto: PBKDF2 password
+   ======================= */
+function b64Enc(buf){
+  let binary = '';
+  const bytes = new Uint8Array(buf);
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+function b64Dec(s){
+  const str = atob(s);
+  const buf = new Uint8Array(str.length);
+  for(let i=0;i<str.length;i++) buf[i]=str.charCodeAt(i);
+  return buf.buffer;
+}
+function genSalt(len=16){
+  const a=new Uint8Array(len);crypto.getRandomValues(a);return b64Enc(a.buffer);
+}
+async function derive(password, saltB64, iterations=120000){
+  const enc = new TextEncoder();
+  const salt = b64Dec(saltB64);
+  const keyMat = await crypto.subtle.importKey('raw', enc.encode(password),'PBKDF2',false,['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations,hash:'SHA-256'}, keyMat, 256);
+  return b64Enc(bits);
+}
+async function setPassword(password){
+  const salt = genSalt(16);
+  const hash = await derive(password, salt, 120000);
+  localStorage.setItem(KEY_AUTH, JSON.stringify({salt,hash,iterations:120000}));
+}
+async function verifyPassword(password){
+  const raw = localStorage.getItem(KEY_AUTH);
+  if(!raw) return false;
+  try{
+    const {salt,hash,iterations} = JSON.parse(raw);
+    const h = await derive(password, salt, iterations||120000);
+    return h === hash;
+  }catch(e){return false}
+}
+/* UI: reset prompt */
+function resetPasswordPrompt(){
+  const cur = localStorage.getItem(KEY_AUTH);
+  if(!cur){
+    const p = prompt('رمز جدید را وارد کنید:');
+    if(p) { setPassword(p).then(()=>{ toast('رمز تنظیم شد ✓'); unlock(); }) }
+  } else {
+    const old = prompt('رمز فعلی را وارد کنید:');
+    if(!old) return;
+    verifyPassword(old).then(ok=>{
+      if(!ok){ alert('رمز فعلی اشتباه است'); return; }
+      const nw = prompt('رمز جدید را وارد کنید:');
+      if(nw) setPassword(nw).then(()=> toast('رمز تغییر کرد ✓'));
+    });
+  }
+}
+
+/* =======================
+   LOCK SCREEN
+   ======================= */
+const lockScreen = document.getElementById('lockScreen');
+async function tryUnlock(){
+  const v = document.getElementById('lockInput').value.trim();
+  if(!v){ toast('رمز را وارد کنید'); return; }
+  const auth = localStorage.getItem(KEY_AUTH);
+  if(!auth){
+    await setPassword(v);
+    toast('رمز تنظیم شد ✓');
+    unlock();
+  } else {
+    const ok = await verifyPassword(v);
+    if(ok) unlock();
+    else { toast('رمز اشتباه است ❌'); document.getElementById('lockInput').value=''; }
+  }
+}
+function unlock(){
+  lockScreen.style.display='none';
+  document.getElementById('lockInput').value='';
+  renderAll();
+}
+function logout(){
+  lockScreen.style.display='grid';
+  document.getElementById('lockInput').focus();
+}
+
+/* =======================
+   UI Helpers & Nav
+   ======================= */
+function switchSec(btn){
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  if(btn instanceof Element) btn.classList.add('active');
+  const sec = btn.dataset.sec;
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById(sec).classList.add('active');
+  if(sec==='records') renderRecords();
+}
+document.querySelectorAll('.nav button').forEach(b=>b.addEventListener('click',()=>switchSec(b)));
+function toast(msg){
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._tm);
+  t._tm = setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+/* =======================
+   Init selects & defaults
+   ======================= */
+function fillMonthSelect(id){
+  const sel = document.getElementById(id);
+  sel.innerHTML = months.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('');
+}
+fillMonthSelect('incMonth'); fillMonthSelect('repMonth');
+document.getElementById('incYear').value = new Date().getFullYear() + 621; // approximate (Gregorian->Jalali not precise) — allow user edit
+document.getElementById('repYear').value = document.getElementById('incYear').value;
+
+/* =======================
+   Income functions
+   ======================= */
+function addIncome(){
+  const month = +document.getElementById('incMonth').value;
+  const year = +document.getElementById('incYear').value;
+  const salary = +document.getElementById('incSalary').value || 0;
+  const overtime = +document.getElementById('incOvertime').value || 0;
+  if(!year || (!salary && !overtime)){ toast('اطلاعات را کامل کنید'); return; }
+  const list = getInc();
+  const idx = list.findIndex(x=>x.month===month && x.year===year);
+  if(idx>=0){ list[idx].salary = salary; list[idx].overtime = overtime; }
+  else list.push({id:Date.now(),month,year,salary,overtime});
+  saveInc(list); toast('درآمد ذخیره شد ✓'); renderAll();
+  document.getElementById('incSalary').value=''; document.getElementById('incOvertime').value='';
+}
+function fillThisMonthIncome(){
+  const d=new Date(); const m = (d.getMonth()+1); const y = d.getFullYear()+621;
+  document.getElementById('incMonth').value = m;
+  document.getElementById('incYear').value = y;
+}
+
+/* =======================
+   Expense functions
+   ======================= */
+function parseJalaliFromString(s){
+  // expects "YYYY/MM/DD" or "YYYY/MM"
+  if(!s) return null;
+  const p = s.split('/').map(x=>parseInt(x,10));
+  if(p.length>=2 && !isNaN(p[0]) && !isNaN(p[1])) return {year:p[0],month:p[1],day:p[2]||null};
+  return null;
+}
+function addExpense(){
+  const type = document.getElementById('expType').value;
+  const title = document.getElementById('expTitle').value.trim();
+  const amount = +document.getElementById('expAmount').value || 0;
+  const date = document.getElementById('expDate').value.trim();
+  if(!title || !amount){ toast('عنوان و مبلغ الزامی است'); return; }
+  const parsed = parseJalaliFromString(date);
+  const list = getExp();
+  list.push({id:Date.now(),type,title,amount,date:date||'',dateYear: parsed?parsed.year:null, dateMonth: parsed?parsed.month:null, dateDay: parsed?parsed.day:null});
+  saveExp(list); toast('ثبت شد ✓'); renderAll();
+  document.getElementById('expTitle').value=''; document.getElementById('expAmount').value=''; document.getElementById('expDate').value='';
+}
+function addExpenseNoDate(){ document.getElementById('expDate').value=''; addExpense(); }
+
+/* =======================
+   Renderers
+   ======================= */
+function renderAll(){ renderDashboard(); renderCalendar(); renderRecords(); }
+function renderDashboard(){
+  const inc = getInc(); const exp = getExp();
+  const sumSalary = inc.reduce((s,x)=>s+x.salary,0);
+  const sumOvertime = inc.reduce((s,x)=>s+x.overtime,0);
+  const sumExpense = exp.filter(x=>x.type==='expense').reduce((s,x)=>s+x.amount,0);
+  const sumDebt = exp.filter(x=>x.type==='debt').reduce((s,x)=>s+x.amount,0);
+  const sumSavings = exp.filter(x=>x.type==='savings').reduce((s,x)=>s+x.amount,0);
+  const net = sumSalary + sumOvertime - sumExpense - sumDebt - sumSavings;
+  document.getElementById('sumSalary').textContent = fmt(sumSalary);
+  document.getElementById('sumOvertime').textContent = fmt(sumOvertime);
+  document.getElementById('sumExpense').textContent = fmt(sumExpense);
+  document.getElementById('sumDebt').textContent = fmt(sumDebt);
+  document.getElementById('sumSavings').textContent = fmt(sumSavings);
+  document.getElementById('sumNet').textContent = fmt(net);
+}
+
+function renderCalendar(){
+  const inc = getInc();
+  const box = document.getElementById('calendar');
+  // start from latest income or current month
+  let startYear = null, startMonth = null;
+  if(inc.length){
+    const latest = inc.reduce((a,b)=> (b.year>a.year || (b.year===a.year && b.month>a.month))?b:a, inc[0]);
+    startYear = latest.year; startMonth = latest.month;
+  } else {
+    const d=new Date(); startMonth = d.getMonth()+1; startYear = d.getFullYear()+621;
+  }
+  let html = '';
+  let y = startYear, m = startMonth;
+  for(let i=0;i<12;i++){
+    const rec = inc.find(x=>x.month===m && x.year===y);
+    const total = rec? rec.salary + rec.overtime : 0;
+    const border = rec? 'border:1px solid rgba(0,196,106,0.18);box-shadow:0 6px 14px rgba(0,196,106,0.03)':'' ;
+    html += `<div class="card" style="${border}"><div class="label">${months[m-1]} ${y}</div><div class="value" style="font-size:16px">${rec?fmt(total):'—'}</div></div>`;
+    // prev month
+    m--; if(m<1){ m=12; y--; }
+  }
+  box.innerHTML = html;
+}
+
+function renderRecords(){
+  const inc = getInc().slice().sort((a,b)=> b.year-a.year || b.month-a.month);
+  const exp = getExp().slice().sort((a,b)=> b.id-a.id);
+  const incBody = document.querySelector('#incomeTable tbody');
+  if(inc.length===0) incBody.innerHTML = '<tr><td colspan="5" class="empty" style="color:var(--muted);text-align:center">درآمدی ثبت نشده</td></tr>';
+  else incBody.innerHTML = inc.map(x=>`<tr><td>${esc(months[x.month-1]||x.month)}</td><td>${esc(x.year)}</td><td>${esc(fmt(x.salary))}</td><td>${esc(fmt(x.overtime))}</td><td><button class="del" onclick="delInc(${x.id})">✕</button></td></tr>`).join('');
+  const expBody = document.querySelector('#expenseTable tbody');
+  if(exp.length===0) expBody.innerHTML = '<tr><td colspan="5" class="empty" style="color:var(--muted);text-align:center">هزینه‌ای ثبت نشده</td></tr>';
+  else {
+    const types = {expense:'هزینه',debt:'بدهی',savings:'پس‌انداز'};
+    expBody.innerHTML = exp.map(x=>`<tr><td>${esc(types[x.type]||x.type)}</td><td>${esc(x.title)}</td><td>${esc(fmt(x.amount))}</td><td>${esc(x.date||'—')}</td><td><button class="del" onclick="delExp(${x.id})">✕</button></td></tr>`).join('');
+  }
+}
+
+/* =======================
+   Delete, clear
+   ======================= */
+function delInc(id){ if(!confirm('حذف شود؟')) return; saveInc(getInc().filter(x=>x.id!==id)); renderAll(); toast('حذف شد'); }
+function delExp(id){ if(!confirm('حذف شود؟')) return; saveExp(getExp().filter(x=>x.id!==id)); renderAll(); toast('حذف شد'); }
+function clearAll(){ if(!confirm('همه داده‌ها پاک شوند؟ (رمز حفظ می‌شود)')) return; saveInc([]); saveExp([]); renderAll(); toast('پاک شد'); }
+
+/* =======================
+   Reports & CSV
+   ======================= */
+function showReport(showDetails=false){
+  const month = +document.getElementById('repMonth').value;
+  const year = +document.getElementById('repYear').value;
+  const inc = getInc().find(x=>x.month===month && x.year===year) || {salary:0,overtime:0};
+  const allExp = getExp();
+  const expenses = allExp.filter(x=>x.type==='expense' && x.dateYear===year && x.dateMonth===month);
+  const debts = allExp.filter(x=>x.type==='debt' && x.dateYear===year && x.dateMonth===month);
+  const savings = allExp.filter(x=>x.type==='savings' && x.dateYear===year && x.dateMonth===month);
+  const totalExp = expenses.reduce((s,x)=>s+x.amount,0);
+  const totalDebt = debts.reduce((s,x)=>s+x.amount,0);
+  const totalSav = savings.reduce((s,x)=>s+x.amount,0);
+  const income = inc.salary + inc.overtime;
+  const net = income - totalExp - totalDebt - totalSav;
+  let html = `<div class="card"><h4 style="color:var(--green);margin-bottom:12px">گزارش ${months[month-1]||month} ${year}</h4>
+    <table>
+      <tr><th>حقوق</th><td>${fmt(inc.salary)}</td></tr>
+      <tr><th>اضافه‌کاری</th><td>${fmt(inc.overtime)}</td></tr>
+      <tr><th>جمع درآمد</th><td style="color:var(--green);font-weight:800">${fmt(income)}</td></tr>
+      <tr><th>هزینه‌ها</th><td style="color:var(--danger)">${fmt(totalExp)}</td></tr>
+      <tr><th>بدهی</th><td style="color:var(--danger)">${fmt(totalDebt)}</td></tr>
+      <tr><th>پس‌انداز</th><td>${fmt(totalSav)}</td></tr>
+      <tr><th>موجودی خالص</th><td style="color:${net>=0?'var(--green)':'var(--danger)'};font-weight:800">${fmt(net)}</td></tr>
+    </table></div>`;
+  if(showDetails){
+    function rows(arr){ return `<tr><th colspan="2" style="text-align:right">جزئیات</th></tr>` + arr.map(x=>`<tr><td>${esc(x.title)}</td><td>${fmt(x.amount)} — ${esc(x.date||'—')}</td></tr>`).join(''); }
+    if(expenses.length) html += `<div class="card" style="margin-top:12px"><h4 style="color:var(--green);margin-bottom:8px">هزینه‌ها</h4><table>${rows(expenses)}</table></div>`;
+    if(debts.length) html += `<div class="card" style="margin-top:12px"><h4 style="color:var(--green);margin-bottom:8px">بدهی‌ها</h4><table>${rows(debts)}</table></div>`;
+    if(savings.length) html += `<div class="card" style="margin-top:12px"><h4 style="color:var(--green);margin-bottom:8px">پس‌اندازها</h4><table>${rows(savings)}</table></div>`;
+  }
+  document.getElementById('reportResult').innerHTML = html;
+}
+
+function exportCSV(){
+  let csv = '\uFEFF'; // BOM
+  csv += 'نوع,عنوان/ماه,سال,حقوق,اضافه‌کاری,مبلغ,تاریخ\n';
+  getInc().forEach(x=> { csv += `درآمد,${months[x.month-1]},${x.year},${x.salary},${x.overtime},,\n`; });
+  const types = {expense:'هزینه',debt:'بدهی',savings:'پس‌انداز'};
+  getExp().forEach(x=> { csv += `${types[x.type]||x.type},${x.title},, , ,${x.amount},${x.date||''}\n`; });
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `financial_report_${Date.now()}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  toast('فایل Excel دانلود شد ✓');
+}
+
+/* Backup: download JSON, restore handled by importing file manually */
+function downloadBackup(){
+  const data = {incomes:getInc(), expenses:getExp(), meta:{created: new Date().toISOString()}};
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `psm_backup_${Date.now()}.json`; a.click(); URL.revokeObjectURL(a.href);
+  toast('نسخه پشتیبان دانلود شد ✓');
+}
+
+/* =======================
+   Init & event wiring
+   ======================= */
+function init(){
+  document.getElementById('lockInput').addEventListener('keydown', e=>{ if(e.key==='Enter') tryUnlock(); });
+  // populate month selects with current selection
+  const now = new Date(); const curM = now.getMonth()+1; const curY = now.getFullYear()+621;
+  document.getElementById('incMonth').value = curM;
+  document.getElementById('incYear').value = curY;
+  document.getElementById('repMonth').value = curM;
+  document.getElementById('repYear').value = curY;
+  // ensure report result empty
+  document.getElementById('reportResult').innerHTML = '';
+  // initial render maybe after unlock
+  // focus input for convenience
+  document.getElementById('lockInput').focus();
+}
+init();
+
+/* expose some functions to window for inline onclick handlers */
+window.switchSec = switchSec;
+window.tryUnlock = tryUnlock;
+window.logout = logout;
+window.resetPasswordPrompt = resetPasswordPrompt;
+window.addIncome = addIncome;
+window.addExpense = addExpense;
+window.addExpenseNoDate = addExpenseNoDate;
+window.delInc = delInc;
+window.delExp = delExp;
+window.clearAll = clearAll;
+window.showReport = showReport;
+window.exportCSV = exportCSV;
+window.downloadBackup = downloadBackup;
+window.fillThisMonthIncome = fillThisMonthIncome;
+
+/* When unlocked (renderAll triggered) */
+function renderAll(){
+  renderDashboard(); renderCalendar(); renderRecords();
+}
+
+/* show toast on page load hint */
+setTimeout(()=>toast('برای شروع، رمز را تنظیم یا وارد کنید'),400);
+</script>
+</body>
+</html>
